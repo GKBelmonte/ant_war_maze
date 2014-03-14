@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+		<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type"> 
+		<title>Ants replicate game</title> 
+    <script src="jquery.js"></script>
+    <script src="utils.js"></script>
+    <!--<script type="text/javascript"  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    -->
+    <link rel='stylesheet' href='bootstrap/css/bootstrap.min.css' />
+    <link rel='stylesheet' href='css.css' />
+		<style type="text/css">    </style>
+	</head> 
+  
+  
+	<body style="cursor: auto;"> 
+
+    <div class="allContainer">
+      <div class="title">
+        <h1 class='text-right'>Ants' game</h1>
+      </div>
+      <h3 class="parameters-label section-expand" speed='400' >+ About</h3 >
+      <div class="all-parameters" style='display:none;'>
+        
+        
+        <!-- ******************* ROW 0 ******************* -->
+       
+        
+        <div class="parameter-section-row">
+
+          <p>
+          Some description about the game stuff
+          </p>
+          <p></p>
+
+        </div>
+         
+      </div>
+      <div class='divider-container'>
+      <li class='divider'></li>
+      </div>
+      <div class="dock">
+        <div class="control">
+          <div class="control-label">Room Probability: </div>
+          <input type="text" id="room-prob" value="0.05"></input>
+        </div>
+        <div class="control">
+          <div class="control-label">Room Junction: </div>
+          <input type="text" id="room-Junction" value="true"></input>
+        </div>
+      </div>
+      <div class="display">
+        
+        <div id='DescriptionDefault'>
+          
+          <canvas id="canvas2" style="width: 400px; height: 400px;" width="256px" height="256px"></canvas>
+        </div>
+        <div id='loc' style="color:#999999;"></div>
+        
+      </div>
+      
+
+    </div>
+
+  </body>
+  <script src="js.js" type="text/javascript"></script>
+
+</html>
