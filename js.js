@@ -27,18 +27,9 @@ var ev2;
 var P1_REC =10;
 var P2_REC =10;
 
+var canvas2 = $('#canvas2')[0];
+var ctx2 = canvas2.getContext('2d');
 
-function findPos(obj) {
-    var curleft = 0, curtop = 0;
-    if (obj.offsetParent) {
-        do {
-            curleft += obj.offsetLeft;
-            curtop += obj.offsetTop;
-        } while (obj = obj.offsetParent);
-        return { x: curleft, y: curtop };
-    }
-    return undefined;
-}
 
 
 var root = new Array(64);
@@ -271,7 +262,6 @@ function BreakRoomWalls(nodeI, nodeJ)
 
 }
 
-
 function CheckRoomContinuation(cells, ii_to, jj_to, radiusSize)
 {
   for(var kk = 0; kk < cells.length;++kk)
@@ -290,28 +280,7 @@ function CheckRoomContinuation(cells, ii_to, jj_to, radiusSize)
   return false;
 
 }
-function Initialize(arg1)
-{
-  $('#canvas2').mousemove(function(e) {
-    var pos = findPos(this);
-    var x = e.pageX - pos.x;
-    var y = e.pageY - pos.y;
-    var coord = "x=" + x + ", y=" + y;
-    var coordBy4 = "x=" + x/4 + ", y=" + y/4;
-    var c = this.getContext('2d');
-    var p = c.getImageData(x, y, 1, 1).data; 
-    var val = '?';//root[Math.floor(x/4)][Math.floor(y/4)];
-    $('#loc').html(coord + "<br>"+ coordBy4 + "<br>" + val);
-});
 
-
-  CreateRoot(32, 32, 5.6);// Creates random 
-  PlaceHives();
-  root = 0; //clean up this shit 
-  Draw();
- 
- 
-}
 
 function ColorMap ( num)
 {
@@ -324,16 +293,17 @@ function ColorMap ( num)
     case 4: return '#FF9999'; //Red hive
     case 9: return '#9999FF'; //Blue hive
     case 2: return '#DD0000'; //Red hive
-    case 3: return '#0000DD'; //Blue hive
+    case 3: return '#0000DD'; //Blue 
+    case 7: return '#539546';
     default: return '#000000';
   }
 
 }
 
-  var BOUNDS = 128;
-  var LOCX = 10;
-  var LOCY = 10;
-  
+var BOUNDS = 128;
+var LOCX = 10;
+var LOCY = 10;
+
 function PlaceHives()
 {
   
@@ -360,55 +330,119 @@ function PlaceHives()
    map[BOUNDS-LOCX][BOUNDS-LOCY] = 27;
 }
 
-  var canvas2 = $('#canvas2')[0];
-  var ctx2 = canvas2.getContext('2d');
 
-  var p1Ants = new Array();
-  var p2Ants = new Array();
+var foodInLocCount = new Array(4);
+for(var ii= 0; ii < 4;++ii)
+{
+  foodInLocCount[ii]=new Array(4);
+  for(var jj= 0; jj < 4;++jj)
+    foodInLocCount[ii][jj] =0;
+}
+
+var foodCountdown = new Array(4);
+for(var ii= 0; ii < 4;++ii)
+{
+  foodCountdown [ii]=new Array(4);
+  for(var jj= 0; jj < 4;++jj)
+    foodCountdown [ii][jj] = 5;
+}
+var foodModulus = 0;
+function PlaceFood()
+{
+  if(foodModulus++ % 4 != 0)
+    return;
   
-  var ToTerminate = new Array();
-  
-  function Logic()
+  for(var ii = 0; ii < 4; ++ii)
   {
-    
-    //Dummy AI logic
-    
-    p1Ants.forEach(DummyAi);
-    p2Ants.forEach(DummyAi);    
-    
-    p1Ants.forEach( Combat);
-    p2Ants.forEach( Combat);
-    
-    ToTerminate.forEach(function (element) { map[ToTerminate[0]][ToTerminate[1]]=1;  } );
-    
-    //Create one ant per player if at least 1 resource is had
-    var p1AntCreated = false;
-    var p2AntCreated = false;
-    for(var ii = -2; ii <= 2; ++ii)
+    for(var jj = 0; jj < 4; ++jj)
     {
-      for(var jj = -2; jj <= 2; ++jj)
+      if (foodCountdown [ii][jj] == 0)
       {
-        if(! (ii == 2 || ii == -2 ||jj==2 || jj == -2))
-          continue;
-        if(map[LOCX + ii][LOCY+jj] == 1 && P1_REC > 0 && !p1AntCreated)
+        if(foodInLocCount[ii][jj] < 6)
         {
-          map[LOCX + ii][LOCY+jj] = 2;
-          p1Ants.push([LOCX + ii,LOCY+jj]);
-          P1_REC--;
-          p1AntCreated= true;
-        }
-        if(map[BOUNDS - (LOCX + ii)][BOUNDS - (LOCY+jj)] == 1 && P2_REC > 0 && !p2AntCreated)
-        {
-          map[BOUNDS - (LOCX + ii)][BOUNDS - (LOCY+jj)] = 3;
-          p2Ants.push([BOUNDS - (LOCX + ii),BOUNDS - (LOCY+jj)]);
-          P2_REC--;
-          p2AntCreated= true;
+          foodCountdown [ii][jj] = 7;//reset countdown
+          if(_tryToPlaceFood(ii,jj))
+            foodInLocCount[ii][jj]+= 1;
         }
       }
+      else
+        foodCountdown [ii][jj] -=1;
+      
     }
-    
-    Draw();
   }
+  
+}
+/*
+Attempts to put food in 8 random locations. Returns true at first successful attempt. 
+Returns false if not possible
+*/
+function _tryToPlaceFood(offsetI, offsetJ)
+{
+  for(var att = 0; att < 8; att++)
+  {
+    var locX= HelperFunctions.RandomInt(0,32);
+    var locY= HelperFunctions.RandomInt(0,32);
+    if(map[offsetI*32 + locX][offsetJ *31 + locY] == 1)
+    {
+      map[offsetI*32 + locX][offsetJ *31 + locY] = 7;
+      return true;
+    }
+  }
+  return false;
+} 
+
+var p1Ants = new Array();
+var p2Ants = new Array();
+
+var ToTerminate = new Array();
+
+function Logic()
+{
+  
+  //Dummy AI logic
+  
+  p1Ants.forEach(DummyAi);
+  p2Ants.forEach(DummyAi);    
+  
+  //Calculate combat casualties
+  p1Ants.forEach( Combat);
+  p2Ants.forEach( Combat);
+  
+  
+  //Remove the dead
+  ToTerminate.forEach(function (element) { map[element[0]][element[1]]=1;  } );
+  
+  //Create one ant per player if at least 1 resource is had
+  var p1AntCreated = false;
+  var p2AntCreated = false;
+  for(var ii = -2; ii <= 2; ++ii)
+  {
+    for(var jj = -2; jj <= 2; ++jj)
+    {
+      if(! (ii == 2 || ii == -2 ||jj==2 || jj == -2))
+        continue;
+      if(map[LOCX + ii][LOCY+jj] == 1 && P1_REC > 0 && !p1AntCreated)
+      {
+        map[LOCX + ii][LOCY+jj] = 2;
+        p1Ants.push([LOCX + ii,LOCY+jj]);
+        P1_REC--;
+        p1AntCreated= true;
+      }
+      if(map[BOUNDS - (LOCX + ii)][BOUNDS - (LOCY+jj)] == 1 && P2_REC > 0 && !p2AntCreated)
+      {
+        map[BOUNDS - (LOCX + ii)][BOUNDS - (LOCY+jj)] = 3;
+        p2Ants.push([BOUNDS - (LOCX + ii),BOUNDS - (LOCY+jj)]);
+        P2_REC--;
+        p2AntCreated= true;
+      }
+    }
+  }
+  
+  //Place food
+  PlaceFood();
+  
+  Draw();
+}
   
 function Draw()
 {
@@ -422,8 +456,12 @@ function Draw()
       ctx2.fillRect(ii*2,jj*2,2,2);
     }
   } 
-  setTimeout(Logic,250);
+  setTimeout(Logic,100);
 }
+
+
+
+
 
 
 var COMBAT_RADIUS = 2;
@@ -500,7 +538,7 @@ function DummyAi (ele) {
         
           if(ele[0] + ii < 0 || ele[0] + ii > 127 || ele[1] + jj < 0 || ele[0] + jj > 127 )
             continue;
-          if(map[ele[0] + ii][ele[1]+jj] == 1)
+          if(map[ele[0] + ii][ele[1]+jj] == 1 || map[ele[0] + ii][ele[1]+jj] == 7)
             possMoves.push([ele[0] + ii,ele[1]+jj] );
           
         }
@@ -514,47 +552,61 @@ function DummyAi (ele) {
         ele[0] = moveTo[0];
         ele[1] = moveTo[1];
         
+        if(map[moveTo[0]][moveTo[1]] == 7) //Food eaten
+        {
+          if( color == 2 )
+            P1_REC +=1;
+          else
+            P1_REC +=1;
+            
+          foodInLocCount[ moveTo[0] >> 5][ moveTo[1] >> 5 ];
+        }
+        
         map[moveTo[0]][moveTo[1]] = color;
       }
     
     }
 
 
+    
+    
+    
+function findPos(obj) {
+    var curleft = 0, curtop = 0;
+    if (obj.offsetParent) {
+        do {
+            curleft += obj.offsetLeft;
+            curtop += obj.offsetTop;
+        } while (obj = obj.offsetParent);
+        return { x: curleft, y: curtop };
+    }
+    return undefined;
+}
+
+function Initialize(arg1)
+{
+  $('#canvas2').mousemove(function(e) {
+    var pos = findPos(this);
+    var x = e.pageX - pos.x;
+    var y = e.pageY - pos.y;
+    var coord = "x=" + x + ", y=" + y;
+    var coordBy4 = "x=" + x/4 + ", y=" + y/4;
+    var c = this.getContext('2d');
+    var p = c.getImageData(x, y, 1, 1).data; 
+    var val = '?';//root[Math.floor(x/4)][Math.floor(y/4)];
+    $('#loc').html(coord + "<br>"+ coordBy4 + "<br>" + val);
+});
+
+   $('.parameters-label').click(ToggleVisibilityClick);
+  CreateRoot(32, 32, 5.6);// Creates random 
+  PlaceHives();
+  root = 0; //clean up this shit 
+  Draw();
+ 
+ 
+}
 
 $(document).load(Initialize(0));
 
 
-/*
-function CreateRoot(nodeI, nodeJ, p)
-{
-  
-  if(nodeI < 1 || nodeI > 126 || nodeJ < 1 || nodeJ > 126 || root[nodeI][nodeJ] == 1)
-    return;
-  root[nodeI][nodeJ] = 1;
-  
-  ctx.fillRect(nodeI*2,nodeJ*2,2,2);
-  
-  
-  var goToList = new Array();
-  if(root[nodeI][nodeJ+1] == 0)
-    goToList.push([nodeI,nodeJ+1]);
-  if(root[nodeI][nodeJ-1] == 0)
-    goToList.push([nodeI,nodeJ-1]);
-  if(root[nodeI+1][nodeJ] == 0)
-    goToList.push([nodeI+1,nodeJ]);
-  if(root[nodeI-1][nodeJ] == 0)
-    goToList.push([nodeI-1,nodeJ]);
-  
-  while(goToList.length > 1 )
-  {
-    var select = HelperFunctions.RandomInt(0,goToList.length);
-    
-    if(HelperFunctions.ProbabilityPass(p) && root[goToList[select][0]][goToList[select][1]] == 0)
-    {
-      //CreateRoot(goToList[select][0], goToList[select][1], p > 0.7 ? p - 0.005 : 0.7) ;
-      setTimeout(CreateRoot ,100 , goToList[select][0], goToList[select][1], p > 0.5 ? p - 0.020 : 0.5);
-    }
-    goToList.splice(select,1);
- 
-  }
-}*/
+
