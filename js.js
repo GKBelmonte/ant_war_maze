@@ -31,7 +31,6 @@ var canvas2 = $('#canvas2')[0];
 var ctx2 = canvas2.getContext('2d');
 
 
-
 var root = new Array(64);
 for(var ii = 0 ; ii < 64; ++ii)
 {
@@ -281,21 +280,26 @@ function CheckRoomContinuation(cells, ii_to, jj_to, radiusSize)
 
 }
 
+var RED_ANT = 2;
+var BLUE_ANT = 3;
+var EMPTY_SPACE = 1;
+var WALL = 0;
+var FOOD = 7;
 
 function ColorMap ( num)
 {
   switch (num)
   {
-    case 0: return '#000000';
-    case 1: return '#FFFFFF';
-    case 16: return '#EE5555'; //Red enemy
-    case 27: return '#5555EE'; //Blue enemy
-    case 4: return '#FF9999'; //Red hive
-    case 9: return '#9999FF'; //Blue hive
-    case 2: return '#DD0000'; //Red hive
-    case 3: return '#0000DD'; //Blue 
-    case 7: return '#539546';
-    default: return '#000000';
+    case 0: return {'Color':'#000000' , 'Size':2};
+    case 1: return {'Color':'#FFFFFF' , 'Size':2};
+    case 16: return {'Color':'#EE5555' , 'Size':2}; //Red hive center
+    case 27: return {'Color':'#5555EE', 'Size':2}; //Blue hive center
+    case 4: return {'Color':'#FF9999', 'Size':2}; //Red hive
+    case 9: return {'Color':'#9999FF', 'Size':2}; //Blue hive
+    case 2: return {'Color':'#DD0000', 'Size':1}; //Red enemy
+    case 3: return {'Color':'#0000DD', 'Size':1}; //Blue enemy
+    case 7: return {'Color':'#539546', 'Size':2};
+    default: return {'Color':'#000000', 'Size':2};
   }
 
 }
@@ -394,6 +398,9 @@ function _tryToPlaceFood(offsetI, offsetJ)
 var p1Ants = new Array();
 var p2Ants = new Array();
 
+var p1Moves = new Array();
+var p2Moves = new Array();
+
 var ToTerminate = new Array();
 
 function Logic()
@@ -452,7 +459,8 @@ function Draw()
     for(var jj = 0 ; jj < 128; jj++)
     {
       //ctx.fillStyle= "rgb("+HelperFunctions.RandomInt(0,256)+","+HelperFunctions.RandomInt(0,256)+","+HelperFunctions.RandomInt(0,256)+")";
-      ctx2.fillStyle = ColorMap( map[ii][jj] );
+      var sizeColor =ColorMap( map[ii][jj] )
+      ctx2.fillStyle = sizeColor.Color;
       ctx2.fillRect(ii*2,jj*2,2,2);
     }
   } 
@@ -529,6 +537,90 @@ function EnemyOf(ant)
 }
 
 
+function MapFromPair ( pair)
+{return map[pair[0]][pair[1]];}
+
+function Move (fromX, fromY, toX, toY)
+{
+  this.From = [fromX,fromY];
+  this.To = [toX, toY];
+}
+
+function Delta(from , to)
+{
+  return Math.sqrt( (from[0] - to[0])(from[0] - to[0]),
+                    (from[1] - to[1])(from[1] - to[1]) );
+}
+
+function UpdateAntLocation(from, to , color)
+{
+  var checkArr ;
+  if(color == 2)
+    checkArr = p1Ants;
+  else if (color == 3)
+    checkArr = p2Ants;
+    
+  var index = -1;
+  //THIS COULD GET LONG! CHANGE IT TO A HASH. IT IS NOT IMPOSSIBLE SINCE
+  //THE HASH WOULD BE PERFECT (ii + jj >> 8)
+  for(var ii = 0 ; ii <  checkArr.length; ++ ii)
+  {
+    if( checkArr[ii][0] == from[0] && checkArr[ii][1] == from[1])
+    {
+      index = ii;
+    }
+  }
+  
+  if(index != -1)
+  {
+    checkArr[ii][0] = to[0] ;
+    checkArr[ii][1] = to[1] ;
+  }
+  else
+    console.log("Ant not found in list!");
+} 
+
+function MakeMoves ( listOfMoves, color)
+{
+  for(var ii = 0 ; ii < listOfMoves.length ; ++ ii)
+  {
+    var move = listOfMoves[ii];
+    var from = MapFromPair(move.From);
+    var to = MapFromPair(move.To);
+    if( from != color )
+    {
+      console.log("Illegal move: piece does not belong to player");
+      continue;
+    }
+    if( to != EMPTY_SPACE || to != FOOD)
+    {  
+      console.log("Illegal move: " + move.From + " to " +  move.To +" moving to illegal block");
+      continue;
+    }
+    if(Delta(from, to) >2 )
+    {
+      console.log("Illegal move: " + move.From + " to " +  move.To +" exceeds two blocks");
+      continue;
+    }
+    
+    
+    map[move.From[0]][move.From[1]] = 1; //set white
+    
+    UpdateAntLocation(move.From, move.To, color);
+    if(map[moveTo[0]][moveTo[1]] == 7) //Food eaten
+    {
+      if( from == 2 )
+        P1_REC +=1;
+      else if (from == 3)
+        P2_REC +=1;
+
+      foodInLocCount[ moveTo[0] >> 5][ moveTo[1] >> 5 ] -= 1;
+    }
+
+    map[move.To[0]][move.To[1]] = color;
+  }
+}
+
 function DummyAi (ele) { 
       var possMoves = new Array();
       for(var ii = -1; ii <= 1; ++ii)
@@ -557,9 +649,9 @@ function DummyAi (ele) {
           if( color == 2 )
             P1_REC +=1;
           else
-            P1_REC +=1;
+            P2_REC +=1;
             
-          foodInLocCount[ moveTo[0] >> 5][ moveTo[1] >> 5 ];
+          foodInLocCount[ moveTo[0] >> 5][ moveTo[1] >> 5 ] -= 1;
         }
         
         map[moveTo[0]][moveTo[1]] = color;
